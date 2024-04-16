@@ -1,0 +1,28 @@
+answer:
+SELECT source_id, array_agg(connections) AS connections
+FROM (
+    SELECT 
+        c.source_id, 
+        c.target_id, 
+        mt.initiative_id, 
+        mt.topic_id, 
+        c.status
+    FROM 
+        connections c
+    LEFT JOIN 
+        master_topic mt ON c.target_id = mt.topic_id AND c.connection_category = 'coach_topic'
+    LEFT JOIN 
+        master_initiative mi ON c.target_id = mi.initiative_id AND c.connection_category = 'coaching_initiative'
+    WHERE 
+        c.status = 'waiting'
+        AND (
+            mi.coaching_admin_ids @> '[{"name": :coachingAdminName, "adminid": :coachingAdminId}]'::jsonb
+            OR mt.initiative_id IS NOT NULL
+        )
+) AS subquery
+GROUP BY 
+    source_id
+ORDER BY 
+    source_id
+LIMIT 
+    :pageSize OFFSET :offsetValue;
